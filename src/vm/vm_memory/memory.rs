@@ -9,7 +9,7 @@ use std::mem::swap;
 
 pub struct ValidationRule(
     #[allow(clippy::type_complexity)]
-    pub  Box<dyn Fn(&Memory, &MaybeRelocatable) -> Result<Vec<MaybeRelocatable>, MemoryError>>,
+    pub  Box<dyn Fn(&Memory, Relocatable) -> Result<Vec<Relocatable>, MemoryError>>,
 );
 pub struct Memory {
     pub data: Vec<Vec<Option<MaybeRelocatable>>>,
@@ -17,17 +17,17 @@ pub struct Memory {
     // relocation_rules's keys map to temp_data's indices and therefore begin at
     // zero; that is, segment_index = -1 maps to key 0, -2 to key 1...
     pub(crate) relocation_rules: HashMap<usize, Relocatable>,
-    pub validated_addresses: HashSet<MaybeRelocatable>,
+    pub validated_addresses: HashSet<Relocatable>,
     validation_rules: HashMap<usize, ValidationRule>,
 }
 
 impl Memory {
     pub fn new() -> Memory {
         Memory {
-            data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
-            temp_data: Vec::<Vec<Option<MaybeRelocatable>>>::new(),
+            data: Vec::new(),
+            temp_data: Vec::new(),
             relocation_rules: HashMap::new(),
-            validated_addresses: HashSet::<MaybeRelocatable>::new(),
+            validated_addresses: HashSet::new(),
             validation_rules: HashMap::new(),
         }
     }
@@ -77,7 +77,7 @@ impl Memory {
                 }
             }
         };
-        self.validate_memory_cell(&MaybeRelocatable::from(key))
+        self.validate_memory_cell(relocatable)
     }
 
     /// Retrieve a value from memory (either normal or temporary) and apply relocation rules
@@ -273,27 +273,24 @@ impl Memory {
         self.validation_rules.insert(segment_index, rule);
     }
 
-    fn validate_memory_cell(&mut self, address: &MaybeRelocatable) -> Result<(), MemoryError> {
-        if let &MaybeRelocatable::RelocatableValue(ref rel_addr) = address {
-            if !self.validated_addresses.contains(address) {
-                for (index, validation_rule) in self.validation_rules.iter() {
-                    if rel_addr.segment_index == *index as isize {
-                        self.validated_addresses
-                            .extend(validation_rule.0(self, address)?);
-                    }
+    fn validate_memory_cell(&mut self, address: Relocatable) -> Result<(), MemoryError> {
+        if !self.validated_addresses.contains(&address) {
+            // FIXME: extract this loop
+            for (index, validation_rule) in self.validation_rules.iter() {
+                if address.segment_index == *index as isize {
+                    self.validated_addresses
+                        .extend(validation_rule.0(self, address)?);
                 }
             }
-            Ok(())
-        } else {
-            Err(MemoryError::AddressNotRelocatable)
         }
+        Ok(())
     }
     ///Applies validation_rules to the current memory
     //Should be called during initialization, as None values will raise a FoundNonInt error
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
         for i in 0..self.data.len() {
             for j in 0..self.data[i].len() {
-                self.validate_memory_cell(&MaybeRelocatable::from((i as isize, j)))?;
+                self.validate_memory_cell(Relocatable::from((i as isize, j)))?;
             }
         }
         Ok(())
@@ -590,7 +587,7 @@ mod memory_tests {
         memory.validate_existing_memory().unwrap();
         assert!(memory
             .validated_addresses
-            .contains(&MaybeRelocatable::from((0, 0))));
+            .contains(&Relocatable::from((0, 0))));
     }
 
     #[test]

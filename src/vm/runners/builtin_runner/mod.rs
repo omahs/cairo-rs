@@ -1020,7 +1020,7 @@ mod tests {
         let mut vm = vm!();
         vm.memory
             .validated_addresses
-            .insert(mayberelocatable!(0, 2));
+            .insert(Relocatable::from((0, 2)));
 
         vm.memory.data = vec![vec![
             mayberelocatable!(0, 0).into(),

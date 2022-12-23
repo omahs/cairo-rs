@@ -70,11 +70,10 @@ impl RangeCheckBuiltinRunner {
 
     pub fn add_validation_rule(&self, memory: &mut Memory) -> Result<(), RunnerError> {
         let rule: ValidationRule = ValidationRule(Box::new(
-            |memory: &Memory,
-             address: &MaybeRelocatable|
-             -> Result<Vec<MaybeRelocatable>, MemoryError> {
+            |memory: &Memory, address: Relocatable| -> Result<Vec<Relocatable>, MemoryError> {
+                // FIXME: unnecessary clone and BigInt creations
                 if let MaybeRelocatable::Int(ref num) = memory
-                    .get(address)?
+                    .get(&address)?
                     .ok_or(MemoryError::FoundNonInt)?
                     .into_owned()
                 {
