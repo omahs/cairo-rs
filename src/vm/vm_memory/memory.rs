@@ -275,7 +275,6 @@ impl Memory {
 
     fn validate_memory_cell(&mut self, address: Relocatable) -> Result<(), MemoryError> {
         if !self.validated_addresses.contains(&address) {
-            // FIXME: extract this loop
             for (index, validation_rule) in self.validation_rules.iter() {
                 if address.segment_index == *index as isize {
                     self.validated_addresses
@@ -289,8 +288,17 @@ impl Memory {
     //Should be called during initialization, as None values will raise a FoundNonInt error
     pub fn validate_existing_memory(&mut self) -> Result<(), MemoryError> {
         for i in 0..self.data.len() {
-            for j in 0..self.data[i].len() {
-                self.validate_memory_cell(Relocatable::from((i as isize, j)))?;
+            for (idx, rule) in self.validation_rules.iter() {
+                if i != *idx {
+                    continue;
+                }
+                for j in 0..self.data[i].len() {
+                    let addr = Relocatable::from((i as isize, j));
+                    if self.validated_addresses.contains(&addr) {
+                        continue;
+                    }
+                    self.validated_addresses.extend(rule.0(self, addr)?);
+                }
             }
         }
         Ok(())
