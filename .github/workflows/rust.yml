@@ -20,7 +20,7 @@ jobs:
           override: true
           components: rustfmt, clippy
     - name: Install nextest
-      uses: dtolnay/install@stable
+      uses: dtolnay/install@master
       with:
         crate: cargo-nextest
     - name: Python3 Build
