@@ -78,6 +78,8 @@ deps:
 	cargo install --version 1.1.0 cargo-criterion
 	cargo install --version 0.6.1 flamegraph
 	cargo install --version 1.14.0 hyperfine
+	cargo install cargo-nextest
+	cargo install cargo-llvm-cov
 	pyenv install pypy3.7-7.3.9
 	pyenv global pypy3.7-7.3.9
 	pip install cairo_lang
@@ -102,13 +104,13 @@ cairo_trace: $(CAIRO_TRACE) $(CAIRO_MEM)
 cairo-rs_trace: $(CAIRO_RS_TRACE) $(CAIRO_RS_MEM)
 
 test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
-	cargo test
+	cargo nextest
 
 clippy:
 	cargo clippy  -- -D warnings
 
-coverage:
-	docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin
+coverage: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
+	cargo llvm-cov nextest
 
 benchmark: $(COMPILED_BENCHES)
 	cargo criterion --bench criterion_benchmark
