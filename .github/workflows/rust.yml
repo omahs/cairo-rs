@@ -19,8 +19,8 @@ jobs:
           toolchain: 1.62.0
           override: true
           components: rustfmt, clippy
-      uses: taiki-e/install-action@cargo-llvm-cov
-      uses: taiki-e/install-action@nextest
+    - uses: taiki-e/install-action@cargo-llvm-cov
+    - uses: taiki-e/install-action@nextest
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:
