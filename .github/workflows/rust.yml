@@ -18,7 +18,11 @@ jobs:
       with:
           toolchain: 1.61.0
           override: true
-          components: rustfmt, clippy, cargo-nextest
+          components: rustfmt, clippy
+    - name: Install nextest
+      uses: dtolnay/install@stable
+      with:
+        crate: cargo-nextest
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:
