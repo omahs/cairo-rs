@@ -62,7 +62,7 @@ jobs:
       uses: actions/upload-artifact@master
       with:
         name: codecov-report
-        path: target/llvm-cov-target
+        path: target/codecov-report
   upload-codecov:
     needs: build
     runs-on: ubuntu-20.04
@@ -71,7 +71,7 @@ jobs:
       uses: actions/download-artifact@master
       with:
         name: codecov-report
-        path: target/llvm-cov-target
+        path: target/codecov-report
     - name: Upload coverage to codecov.io
       uses: codecov/codecov-action@v3
       with:

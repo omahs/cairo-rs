@@ -57,7 +57,7 @@ $(TEST_DIR)/%.json: $(TEST_DIR)/%.cairo
 	cairo-compile --cairo_path="$(TEST_DIR):$(BENCH_DIR)" $< --output $@
 
 $(TEST_DIR)/%.rs.trace $(TEST_DIR)/%.rs.memory: $(TEST_DIR)/%.json build
-	cargo llvm-cov run -- --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
+	cargo llvm-cov run --release --quiet --no-clean --lcov -- --layout all $< --trace_file $@ --memory_file $(@D)/$(*F).rs.memory
 
 $(TEST_DIR)/%.trace $(TEST_DIR)/%.memory: $(TEST_DIR)/%.json
 	cairo-run --layout all --program $< --trace_file $@ --memory_file $(@D)/$(*F).memory
@@ -107,10 +107,10 @@ test: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
 	cargo nextest
 
 clippy:
-	cargo clippy  -- -D warnings
+	cargo clippy --no-deps -- -D warnings
 
 coverage: $(COMPILED_PROOF_TESTS) $(COMPILED_TESTS) $(COMPILED_BAD_TESTS)
-	cargo llvm-cov nextest
+	cargo llvm-cov nextest --lcov --output-path target/codecov-report
 
 benchmark: $(COMPILED_BENCHES)
 	cargo criterion --bench criterion_benchmark
