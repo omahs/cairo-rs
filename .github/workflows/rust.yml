@@ -18,7 +18,7 @@ jobs:
       with:
           toolchain: 1.61.0
           override: true
-          components: rustfmt, clippy
+          components: rustfmt, clippy, cargo-nextest
     - name: Python3 Build
       uses: actions/setup-python@v4
       with:
