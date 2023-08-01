@@ -6,7 +6,12 @@
 //! To generate a [`Program`] from a JSON string, see [`Program::from_bytes()`].
 //! To do the same from a JSON file, see [`Program::from_file()`].
 
-use crate::stdlib::{collections::HashMap, fmt, prelude::*, sync::Arc};
+use crate::stdlib::{
+    collections::{BTreeMap, HashMap},
+    fmt,
+    prelude::*,
+    sync::Arc,
+};
 
 use crate::vm::runners::builtin_runner::SEGMENT_ARENA_BUILTIN_NAME;
 use crate::{
@@ -71,7 +76,7 @@ pub struct ProgramJson {
     #[serde(deserialize_with = "deserialize_array_of_bigint_hex")]
     pub data: Vec<MaybeRelocatable>,
     pub identifiers: HashMap<String, Identifier>,
-    pub hints: HashMap<usize, Vec<HintParams>>,
+    pub hints: BTreeMap<usize, Vec<HintParams>>,
     pub reference_manager: ReferenceManager,
     pub attributes: Vec<Attribute>,
     pub debug_info: Option<DebugInfo>,
@@ -441,7 +446,8 @@ pub fn parse_program_json(
         }
     }
 
-    let (hints, hints_ranges) = Program::flatten_hints(&program_json.hints);
+    let (hints, hints_ranges) =
+        Program::flatten_hints(&program_json.hints, program_json.data.len())?;
 
     let shared_program_data = SharedProgramData {
         data: program_json.data,
@@ -643,7 +649,7 @@ mod tests {
             MaybeRelocatable::Int(Felt252::new(2345108766317314046_i64)),
         ];
 
-        let mut hints = HashMap::new();
+        let mut hints = BTreeMap::new();
         hints.insert(
             0,
             vec![HintParams {
@@ -877,7 +883,7 @@ mod tests {
                 }],
             ),
             (
-                46,
+                4,
                 vec![HintParams {
                     code: "import math".to_string(),
                     accessible_scopes: vec![
@@ -910,7 +916,7 @@ mod tests {
     /// Deserialize a program without an entrypoint.
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn deserialize_program_without_entrypoint_test() {
+    fn deserialize_program_without_entrypoint() {
         let reader =
             include_bytes!("../../../cairo_programs/manually_compiled/valid_program_a.json");
 
@@ -946,7 +952,7 @@ mod tests {
                 }],
             ),
             (
-                46,
+                4,
                 vec![HintParams {
                     code: "import math".to_string(),
                     accessible_scopes: vec![
@@ -1525,6 +1531,53 @@ mod tests {
                 10
             )
             .unwrap()
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn deserialize_program_with_invalid_hint_pc() {
+        let reader = br#"{
+            "attributes": [],
+            "builtins": [],
+            "compiler_version": "0.11.0",
+            "data": [
+                "0x41241"
+            ],
+            "debug_info": {
+                "instruction_locations": {}
+            },
+            "hints": {
+                "1": [
+                    {
+                        "accessible_scopes": [],
+                        "code": "",
+                        "flow_tracking_data": {
+                            "ap_tracking": {
+                                "group": 0,
+                                "offset": 0
+                            },
+                            "reference_ids": {}
+                        }
+                    }
+                ]
+            },
+            "identifiers": {
+                "__main__.main": {}
+            },
+            "main_scope": "",
+            "prime": "0x800000000000011000000000000000000000000000000000000000000000001",
+            "reference_manager": {
+                "references": []
+            }
+        }"#;
+
+        let deserialization_result = deserialize_and_parse_program(reader, Some("main"));
+
+        assert!(deserialization_result.is_err());
+        assert_matches!(
+            deserialization_result.unwrap_err(),
+            ProgramError::InvalidHintPc(1, 1)
         );
     }
 }
